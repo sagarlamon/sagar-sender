@@ -210,6 +210,11 @@
             box-shadow: 0 15px 30px rgba(0, 245, 255, 0.4);
         }
         
+        .download-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
         .download-btn::before {
             content: '';
             position: absolute;
@@ -364,6 +369,23 @@
             font-size: 0.85rem;
         }
         
+        /* Ripple effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
+        
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+        
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .title {
@@ -395,7 +417,7 @@
 
     <!-- Header -->
     <div class="header">
-        <h1 class="title">Download Portal</h1>
+        <h1 class="title">SAGAR Portal</h1>
         <p class="subtitle">Ultimate File Access Experience</p>
         <p class="description">Secure • Fast • Reliable</p>
     </div>
@@ -465,49 +487,80 @@
     </div>
 
     <script>
-        function initiateDownload() {
+        // Load configuration from config.json file
+        async function loadConfig() {
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) {
+                    throw new Error('Config file not found');
+                }
+                const config = await response.json();
+                if (!config.driveLink) {
+                    throw new Error('Drive link not configured');
+                }
+                return config.driveLink;
+            } catch (error) {
+                console.error('Configuration error:', error.message);
+                return null;
+            }
+        }
+
+        async function initiateDownload() {
             const btn = document.querySelector('.download-btn');
             const progressContainer = document.getElementById('progressContainer');
             const progressFill = document.getElementById('progressFill');
             const statusMessage = document.getElementById('statusMessage');
+            
+            // Disable button during loading
+            btn.disabled = true;
             
             // Show progress
             progressContainer.style.display = 'block';
             btn.innerHTML = '<span>🔄 Preparing...</span>';
             btn.style.background = 'linear-gradient(45deg, #666, #999)';
             
-            // Simulate loading
-            let progress = 0;
-            const loadingInterval = setInterval(() => {
-                progress += Math.random() * 10;
-                progressFill.style.width = Math.min(progress, 90) + '%';
+            try {
+                // Load the drive link from config
+                const driveLink = await loadConfig();
                 
-                if (progress >= 90) {
-                    clearInterval(loadingInterval);
-                    
-                    // Complete and redirect
-                    setTimeout(() => {
-                        progressFill.style.width = '100%';
-                        statusMessage.className = 'status-message status-success';
-                        statusMessage.innerHTML = '✅ Redirecting to Google Drive...';
-                        statusMessage.style.display = 'block';
-                        
-                        // Redirect to Google Drive
-                        setTimeout(() => {
-                            window.open('https://drive.google.com/file/d/1kobbDHnjKS1IrZ1EOtvuw4GUHJnufUaI/view?usp=drivesdk', '_blank');
-                            
-                            // Reset UI
-                            setTimeout(() => {
-                                progressContainer.style.display = 'none';
-                                statusMessage.style.display = 'none';
-                                btn.innerHTML = '<span>🚀 Access Files</span>';
-                                btn.style.background = 'linear-gradient(45deg, #00f5ff, #ff006e)';
-                                progressFill.style.width = '0%';
-                            }, 2000);
-                        }, 1000);
-                    }, 500);
+                if (!driveLink) {
+                    throw new Error('Admin has not provided any link yet');
                 }
-            }, 200);
+                
+                // Simulate loading
+                let progress = 0;
+                const loadingInterval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    progressFill.style.width = Math.min(progress, 90) + '%';
+                    
+                    if (progress >= 90) {
+                        clearInterval(loadingInterval);
+                        
+                        // Complete and redirect
+                        setTimeout(() => {
+                            progressFill.style.width = '100%';
+                            statusMessage.className = 'status-message status-success';
+                            statusMessage.innerHTML = '✅ Redirecting to Google Drive...';
+                            statusMessage.style.display = 'block';
+                            
+                            // Redirect to Google Drive using direct navigation (avoids popup blockers)
+                            setTimeout(() => {
+                                window.location.href = driveLink;
+                            }, 1000);
+                        }, 500);
+                    }
+                }, 200);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                statusMessage.className = 'status-message status-error';
+                statusMessage.innerHTML = `❌ Error: ${error.message}`;
+                statusMessage.style.display = 'block';
+                progressContainer.style.display = 'none';
+                btn.innerHTML = '<span>🚀 Access Files</span>';
+                btn.style.background = 'linear-gradient(45deg, #00f5ff, #ff006e)';
+                btn.disabled = false;
+            }
         }
 
         // Add some interactive effects
@@ -544,27 +597,6 @@
         }
 
         document.querySelector('.download-btn').addEventListener('click', createRipple);
-
-        // Add CSS for ripple effect
-        const style = document.createElement('style');
-        style.textContent = `
-            .ripple {
-                position: absolute;
-                border-radius: 50%;
-                background-color: rgba(255, 255, 255, 0.3);
-                transform: scale(0);
-                animation: ripple-animation 0.6s linear;
-                pointer-events: none;
-            }
-            
-            @keyframes ripple-animation {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
